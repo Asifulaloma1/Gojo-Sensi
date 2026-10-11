@@ -2,7 +2,7 @@ import streamlit as st
 from groq import Groq
 import base64, os
 
-st.set_page_config(page_title="A1X - Gojo Sensi", page_icon="🪽", layout="centered")
+st.set_page_config(page_title="Gojo Saturo", layout="centered")
 
 def get_bg():
     # tor file er naam bg.jpg.png tai oita first e check korbe
@@ -52,19 +52,19 @@ if bg_url:
 else:
     st.error("bg file pai nai! GitHub e bg.jpg.png ase kina check kor")
 
-GOJO_PROMPT = "You are Gojo Satoru - A1X brand. Angelic but strongest. Say Nah I'd Win. Mix Bangla+English, short 2 lines."
+GOJO_PROMPT = "You are Gojo Satoru - Asif Ul Alom brand. Angelic but strongest. Say Huh. Mix Bangla+English, short 4 lines."
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-st.title("🪽 A1X • Gojo Sensi")
+st.title("Gojo Sensi")
 st.caption("Angelic • Strongest • Limitless")
 
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
-if prompt := st.chat_input("Gojo ke jiggesh kor..."):
+if prompt := st.chat_input("Gojo ke jiggesh koro..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
