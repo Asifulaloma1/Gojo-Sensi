@@ -2,37 +2,33 @@ import streamlit as st
 from groq import Groq
 import asyncio
 import edge_tts
-import os
 
-st.set_page_config(page_title="Gojo Sensi REAL AI", page_icon="🟣", layout="centered")
+st.set_page_config(page_title="Gojo Sensi REAL AI", page_icon="🟣")
 
 with st.sidebar:
     st.title("🟣 Gojo Control")
-    if "GROQ_API_KEY" in st.secrets:
-        api_key = st.secrets["GROQ_API_KEY"]
-        st.success("Six Eyes Are watching you ✅")
-    else:
-        api_key = st.text_input("Enter Groq API Key", type="password")
-    if st.button("Clear Chat / Domain Expansion"):
-        st.session_state.messages = []
-        st.rerun()
+    api_key = st.secrets["GROQ_API_KEY"]
 
-GOJO_PROMPT = """You are Gojo Satoru, the strongest. Cocky, playful. Call user 'my weak student'. Use 'Nah I'd Win', 'I alone am the honored one'. Mix Bangla+English. Short, funny."""
+GOJO_PROMPT = "You are Gojo Satoru, strongest. Cocky, serious, playful. Call user 'my weak student'. Short reply."
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-st.title("Gojo Sensi - REAL AI 🟣")
-st.caption("Powered by openai/gpt-oss-20b + Natural Voice")
+st.title("Gojo Sensi - REAL Voice 🟣")
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-async def make_voice(text, voice="en-US-GuyNeural"):
-    # Gojo er jonno cool guy voice
-    communicate = edge_tts.Communicate(text, voice, rate="+10%", pitch="+5Hz")
-    await communicate.save("gojo_voice.mp3")
+async def gojo_voice(text):
+    # Eita oi YouTube er Gojo serious voice er moto
+    communicate = edge_tts.Communicate(
+        text,
+        "en-US-ChristopherNeural", # Deep Gojo type
+        rate="-10%",
+        pitch="-15Hz"
+    )
+    await communicate.save("gojo.mp3")
 
 if prompt := st.chat_input("Ask your Sensei..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -41,18 +37,14 @@ if prompt := st.chat_input("Ask your Sensei..."):
 
     with st.chat_message("assistant"):
         client = Groq(api_key=api_key)
-        chat_completion = client.chat.completions.create(
+        res = client.chat.completions.create(
             messages=[{"role": "system", "content": GOJO_PROMPT}, *st.session_state.messages],
             model="openai/gpt-oss-20b",
         )
-        full_response = chat_completion.choices[0].message.content
-        st.markdown(full_response)
+        ans = res.choices[0].message.content
+        st.markdown(ans)
 
-        # NATURAL VOICE
-        try:
-            asyncio.run(make_voice(full_response[:500]))
-            st.audio("gojo_voice.mp3", format="audio/mp3")
-        except Exception as e:
-            st.write(f"voice error: {e}")
+        asyncio.run(gojo_voice(ans[:400]))
+        st.audio("gojo.mp3")
 
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+    st.session_state.messages.append({"role": "assistant", "content": ans})
