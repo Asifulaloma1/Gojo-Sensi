@@ -7,8 +7,15 @@ st.set_page_config(page_title="Gojo Sensi REAL AI", page_icon="🟣", layout="ce
 # --- SIDEBAR ---
 with st.sidebar:
     st.title("🟣 Gojo Control")
-    api_key = st.text_input("Groq API Key boshao (gsk_...)", type="password")
-    st.caption("Key ta console.groq.com theke niso oita")
+
+    # Secret theke auto nibe, na thakle user input nibe
+    if "GROQ_API_KEY" in st.secrets:
+        api_key = st.secrets["GROQ_API_KEY"]
+        st.success("Gojo's Six Eyes Active ✅")
+    else:
+        api_key = st.text_input("Groq API Key boshao (gsk_...)", type="password")
+        st.caption("Key ta console.groq.com theke niso oita")
+
     st.divider()
     st.metric("Power", "∞ INFINITE")
     if st.button("Memory Erase"):
@@ -55,7 +62,7 @@ if prompt := st.chat_input("Gojo ke kichu bol..."):
                             {"role": "system", "content": GOJO_PROMPT},
                             *st.session_state.messages
                         ],
-                        model="openai/gpt-oss-20b",
+                        model="llama-3.3-70b-versatile",
                     )
                     reply = chat_completion.choices[0].message.content
 
