@@ -1,42 +1,52 @@
 import streamlit as st
 from groq import Groq
-import requests, asyncio
-import edge_tts
+import base64
 
-st.set_page_config(page_title="Gojo Sensi REAL AI", page_icon="🟣")
+st.set_page_config(page_title="Gojo Sensi", page_icon="🟣", layout="centered")
 
-GOJO_PROMPT = "You are Gojo Satoru. Cocky, strongest, serious like video ZHVuXN4DHkE. Say Nah I'd Win. Mix Bangla+English. Short."
+# --- GOJO BACKGROUND CSS ---
+def add_bg():
+    st.markdown("""
+    <style>
+   .stApp {
+        background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.85)), url("https://i.pinimg.com/originals/8f/3b/6a/8f3b6a8b8c5d6b8b8c5d6b8b8c5d6b8b.jpg");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+   .stApp > header { background: transparent; }
+    [data-testid="stChatMessage"] {
+        background: rgba(20, 20, 30, 0.8)!important;
+        border: 1px solid #7c3aed;
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+    }
+    h1 { color: #a78bfa!important; text-shadow: 0 0 20px #7c3aed; text-align: center; }
+   .stChatInput { background: rgba(20,20,30,0.9)!important; border-radius: 20px!important; }
+    </style>
+    """, unsafe_allow_html=True)
 
-FISH_API_KEY = st.secrets.get("FISH_API_KEY", "")
-MODEL_ID = st.secrets.get("FISH_MODEL_ID", "91d1420efb1846afb51ffd1f64c4d538")
+add_bg()
 
-def get_gojo_voice_fish(text):
-    try:
-        url = "https://api.fish.audio/v1/tts"
-        headers = {"Authorization": f"Bearer {FISH_API_KEY}", "Content-Type": "application/json"}
-        data = {"text": text, "reference_id": MODEL_ID, "format": "mp3"}
-        r = requests.post(url, json=data, headers=headers, timeout=15)
-        if r.status_code == 200:
-            return r.content, True
-    except: pass
-    return None, False
-
-async def get_gojo_voice_edge(text):
-    # Deep Gojo voice - FREE unlimited
-    communicate = edge_tts.Communicate(text, "en-US-ChristopherNeural", rate="-8%", pitch="-15Hz")
-    await communicate.save("gojo.mp3")
-    return "gojo.mp3"
+GOJO_PROMPT = """
+You are Gojo Satoru from Jujutsu Kaisen.
+The STRONGEST. Cocky, funny, serious when needed.
+Say "Nah, I'd Win" sometimes.
+Mix Bangla + English like: "Omae wa mou weak, bro"
+Short replies, max 3 lines.
+"""
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-st.title("🟣 Gojo Sensi - REAL VOICE")
+st.title("🟣 Gojo Sensi")
+st.markdown("<p style='text-align:center;color:#c4b5fd;'>The Strongest Sorcerer - Nah, I'd Win</p>", unsafe_allow_html=True)
 
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
-if prompt := st.chat_input("Omae wa mou... ask something"):
+if prompt := st.chat_input("Gojo ke kichu jiggesh kor..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -49,17 +59,5 @@ if prompt := st.chat_input("Omae wa mou... ask something"):
         )
         ans = res.choices[0].message.content
         st.markdown(ans)
-
-        # Try Fish first, fail hole Edge
-        audio, is_fish = get_gojo_voice_fish(ans[:250])
-        if is_fish and audio:
-            st.audio(audio, format="audio/mp3")
-            st.caption("🔥 Real Gojo Clone (Fish)")
-        else:
-            awaitable = get_gojo_voice_edge(ans[:300])
-            asyncio.run(awaitable)
-            st.audio("gojo.mp3")
-            st.caption("🟣 Gojo Deep Voice (Free - Unlimited)")
-            st.info("Fish API credit sesh, tai free voice bajche. 100% free unlimited!")
 
     st.session_state.messages.append({"role": "assistant", "content": ans})
