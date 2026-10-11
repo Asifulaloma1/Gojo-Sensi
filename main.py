@@ -11,7 +11,7 @@ with st.sidebar:
     # Secret theke auto nibe, na thakle user input nibe
     if "GROQ_API_KEY" in st.secrets:
         api_key = st.secrets["GROQ_API_KEY"]
-        st.success("Gojo's Six Eyes Active ✅")
+        st.success("Gojo's Six Eyes Are watching you ✅")
     else:
         api_key = st.text_input("Groq API Key boshao (gsk_...)", type="password")
         st.caption("Key ta console.groq.com theke niso oita")
