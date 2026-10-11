@@ -40,7 +40,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 st.title("🟣 Gojo Sensi")
-st.markdown("<p style='text-align:center;color:#c4b5fd;'>The Strongest Sorcerer - Nah, I'd Win</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;color:#c4b5fd;'>The Strongest Sorcerer</p>", unsafe_allow_html=True)
 
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
