@@ -52,13 +52,13 @@ if bg_url:
 else:
     st.error("bg file pai nai! GitHub e bg.jpg.png ase kina check kor")
 
-GOJO_PROMPT = "You are Gojo Satoru - Asif Ul Alom brand. Angelic but strongest. Say Huh. Mix Bangla+English, short 4 lines."
+GOJO_PROMPT = "You are Gojo Satoru. Say Huh. Mix Bangla+English, short 4 lines."
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 st.title("Gojo Sensi")
-st.caption("Angelic • Strongest • Limitless")
+st.caption("Powerfull • Strongest • Limitless")
 
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
