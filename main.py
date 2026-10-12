@@ -1,6 +1,7 @@
 import streamlit as st
 from groq import Groq
 import base64, os
+import os
 
 st.set_page_config(page_title="Gojo Saturo", layout="centered")
 
@@ -69,7 +70,7 @@ if prompt := st.chat_input("Gojo ke jiggesh koro..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     with st.chat_message("assistant"):
-        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+        client = Groq(api_key=os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", ""))
         res = client.chat.completions.create(
             messages=[{"role":"system","content":GOJO_PROMPT}, *st.session_state.messages],
             model="openai/gpt-oss-20b"
