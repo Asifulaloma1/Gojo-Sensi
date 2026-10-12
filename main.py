@@ -1,80 +1,95 @@
-import streamlit as st
+import os, base64
+from flask import Flask, request, render_template_string
 from groq import Groq
-import base64, os
-import os
+from twilio.rest import Client as TwilioClient
+from twilio.twiml.messaging_response import MessagingResponse
 
-st.set_page_config(page_title="Gojo Saturo", layout="centered")
+app = Flask(__name__)
+
+# API Clients
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+twilio_client = TwilioClient(os.getenv("TWILIO_SID"), os.getenv("TWILIO_TOKEN")) if os.getenv("TWILIO_SID") else None
+
+GOJO_PROMPT = "You are Gojo Satoru. The strongest sorcerer. Cocky, funny, savage. Mix Bangla+English, short 4-5 lines max. Say Huh sometimes. Use emojis."
 
 def get_bg():
-    # tor file er naam bg.jpg.png tai oita first e check korbe
-    for name in ["bg.jpg.png", "bg.jpg", "bg.png", "wa_image_3925620385820380071"]:
+    for name in ["bg.jpg.png", "bg.jpg", "bg.png"]:
         if os.path.exists(name):
             with open(name, "rb") as f:
                 b64 = base64.b64encode(f.read()).decode()
-                # png hole png, jpg hole jpg
-                ext = "png" if "png" in name else "jpg"
-                return f"data:image/{ext};base64,{b64}"
+                return f"data:image/png;base64,{b64}"
     return None
 
-bg_url = get_bg()
+BG = get_bg()
 
-if bg_url:
-    st.markdown(f"""
-    <style>
-   .stApp {{
-        background-image: url("{bg_url}")!important;
-        background-size: cover!important;
-        background-position: center center!important;
-        background-attachment: fixed!important;
-        background-repeat: no-repeat!important;
-    }}
-    /* halka dark overlay jate text pora jai, kintu pic dekha jai */
-   .stApp::before {{
-        content: "";
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.45);
-        z-index: -1;
-    }}
-   .stApp > header {{ background: transparent!important; }}
-    [data-testid="stChatMessage"] {{
-        background: rgba(0,0,0,0.65)!important;
-        border: 1px solid #60a5fa;
-        backdrop-filter: blur(10px);
-        border-radius: 16px;
-    }}
-    h1 {{
-        color: #e0f2fe!important;
-        text-shadow: 0 0 20px #3b82f6, 0 0 40px #60a5fa;
-        text-align: center;
-    }}
-    </style>
-    """, unsafe_allow_html=True)
-else:
-    st.error("bg file pai nai! GitHub e bg.jpg.png ase kina check kor")
+def get_gojo_reply(user_msg):
+    res = groq_client.chat.completions.create(
+        messages=[{"role":"system","content":GOJO_PROMPT},{"role":"user","content":user_msg}],
+        model="openai/gpt-oss-20b"
+    )
+    return res.choices[0].message.content
 
-GOJO_PROMPT = "You are Gojo Satoru. Say Huh. Mix Bangla+English, short 4 lines."
+HTML = """
+<!DOCTYPE html>
+<html>
+<head><title>Gojo Sensi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{
+ background: url('{{bg}}') no-repeat center center fixed; background-size: cover;
+ color: white; font-family: sans-serif; margin:0;
+}
+.overlay{ background: rgba(0,0,0,0.6); min-height:100vh; padding:20px; }
+.box{ max-width:700px; margin:auto; background: rgba(0,0,0,0.7); padding:20px; border-radius:20px; border:1px solid #60a5fa; backdrop-filter: blur(10px);}
+h1{ text-align:center; color:#e0f2fe; text-shadow:0 0 20px #3b82f6; }
+input{ width:80%; padding:12px; border-radius:10px; border:none; }
+button{ padding:12px 20px; border-radius:10px; background:#3b82f6; color:white; border:none; }
+.msg{ margin:10px 0; padding:10px; border-radius:10px; }
+.user{ background:#1e40af; text-align:right; }
+.assistant{ background:#111827; border:1px solid #3b82f6; }
+</style>
+</head>
+<body><div class="overlay"><div class="box">
+<h1>Gojo Sensi - Limitless</h1>
+<div id="chat"></div>
+<form onsubmit="sendMsg(event)">
+<input id="inp" placeholder="Gojo ke jiggesh koro..." autocomplete="off"><button>Send</button>
+</form>
+<p style="text-align:center; font-size:12px;">WhatsApp Bot: {{wa_status}}</p>
+</div></div>
+<script>
+async function sendMsg(e){
+ e.preventDefault();
+ let txt=document.getElementById('inp').value;
+ if(!txt) return;
+ document.getElementById('chat').innerHTML+=`<div class='msg user'>${txt}</div>`;
+ document.getElementById('inp').value='';
+ let r=await fetch('/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({msg:txt})});
+ let d=await r.json();
+ document.getElementById('chat').innerHTML+=`<div class='msg assistant'>${d.reply}</div>`;
+}
+</script>
+</body></html>
+"""
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+@app.route("/")
+def home():
+    wa = "Active ✅" if twilio_client else "Not set"
+    return render_template_string(HTML, bg=BG, wa_status=wa)
 
-st.title("Gojo Sensi")
-st.caption("Powerfull • Strongest • Limitless")
+@app.route("/chat", methods=['POST'])
+def chat():
+    data = request.get_json()
+    reply = get_gojo_reply(data.get('msg',''))
+    return {"reply": reply}
 
-for m in st.session_state.messages:
-    with st.chat_message(m["role"]):
-        st.markdown(m["content"])
+@app.route("/whatsapp", methods=['POST'])
+def whatsapp():
+    incoming = request.values.get('Body', '')
+    reply = get_gojo_reply(incoming)
+    resp = MessagingResponse()
+    resp.message(reply)
+    return str(resp)
 
-if prompt := st.chat_input("Gojo ke jiggesh koro..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    with st.chat_message("assistant"):
-        client = Groq(api_key=os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", ""))
-        res = client.chat.completions.create(
-            messages=[{"role":"system","content":GOJO_PROMPT}, *st.session_state.messages],
-            model="openai/gpt-oss-20b"
-        )
-        ans = res.choices[0].message.content
-        st.markdown(ans)
-    st.session_state.messages.append({"role": "assistant", "content": ans})
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
