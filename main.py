@@ -2,10 +2,8 @@ import os
 from flask import Flask, request, jsonify
 from groq import Groq
 from twilio.twiml.messaging_response import MessagingResponse
-from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
