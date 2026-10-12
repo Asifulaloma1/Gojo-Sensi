@@ -30,7 +30,7 @@ h1{text-align:center;background:linear-gradient(90deg,#a78bfa,#ec4899);-webkit-b
 </head>
 <body>
 <div class="container">
-<img class="gojo-img" src="https://i.pinimg.com/originals/6b/33/24/6b33248a7a2a3d4f2b2c8f0c9d0e1f2a3.jpg" onerror="this.src='https://i.imgur.com/8Km9tLL.jpg'">
+<img class="gojo-img" src="https://i.ibb.co/3mZqRqQK/gojo.jpg" style="object-fit:cover; object-position:top">
 <div class="chat-box">
 <h1>DOMAIN CHAT - Gojo Satoru</h1>
 <div id="chat"></div>
