@@ -1,95 +1,98 @@
-import os, base64
-from flask import Flask, request, render_template_string
+import os
+from flask import Flask, request, render_template_string, jsonify
 from groq import Groq
-from twilio.rest import Client as TwilioClient
 from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-# API Clients
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-twilio_client = TwilioClient(os.getenv("TWILIO_SID"), os.getenv("TWILIO_TOKEN")) if os.getenv("TWILIO_SID") else None
+SYSTEM_PROMPT = """You are Gojo Satoru, the strongest jujutsu sorcerer. You are playful, cocky, a bit flirty, limitless. Mix Bangla, English, Japanese. You call user 'my student'. Never break character. Your techniques: Limitless, Six Eyes, Infinity, Hollow Purple, Domain Expansion: Infinite Void."""
 
-GOJO_PROMPT = "You are Gojo Satoru. The strongest sorcerer. Cocky, funny, savage. Mix Bangla+English, short 4-5 lines max. Say Huh sometimes. Use emojis."
-
-def get_bg():
-    for name in ["bg.jpg.png", "bg.jpg", "bg.png"]:
-        if os.path.exists(name):
-            with open(name, "rb") as f:
-                b64 = base64.b64encode(f.read()).decode()
-                return f"data:image/png;base64,{b64}"
-    return None
-
-BG = get_bg()
-
-def get_gojo_reply(user_msg):
-    res = groq_client.chat.completions.create(
-        messages=[{"role":"system","content":GOJO_PROMPT},{"role":"user","content":user_msg}],
-        model="openai/gpt-oss-20b"
-    )
-    return res.choices[0].message.content
-
+# PRO UI - JJK THEME
 HTML = """
 <!DOCTYPE html>
 <html>
-<head><title>Gojo Sensi</title>
+<head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gojo Sensi • Limitless</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
 <style>
-body{
- background: url('{{bg}}') no-repeat center center fixed; background-size: cover;
- color: white; font-family: sans-serif; margin:0;
-}
-.overlay{ background: rgba(0,0,0,0.6); min-height:100vh; padding:20px; }
-.box{ max-width:700px; margin:auto; background: rgba(0,0,0,0.7); padding:20px; border-radius:20px; border:1px solid #60a5fa; backdrop-filter: blur(10px);}
-h1{ text-align:center; color:#e0f2fe; text-shadow:0 0 20px #3b82f6; }
-input{ width:80%; padding:12px; border-radius:10px; border:none; }
-button{ padding:12px 20px; border-radius:10px; background:#3b82f6; color:white; border:none; }
-.msg{ margin:10px 0; padding:10px; border-radius:10px; }
-.user{ background:#1e40af; text-align:right; }
-.assistant{ background:#111827; border:1px solid #3b82f6; }
+body{font-family:'Space Grotesk',sans-serif;background:#050510;overflow:hidden}
+.bg-void{background: radial-gradient(ellipse at center, #1a1040 0%, #050510 70%);}
+.infinity{position:absolute;width:600px;height:300px;background:linear-gradient(90deg, #7c3aed, #3b82f6, #7c3aed);filter:blur(40px);opacity:0.3;border-radius:50%;animation:float 6s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0px) rotate(0deg)}50%{transform:translateY(-20px) rotate(3deg)}}
+.eye-glow{box-shadow:0 0 60px #3b82f6, 0 0 100px #7c3aed;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:0.8}50%{opacity:1}}
+.glass{backdrop-filter:blur(16px);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1)}
 </style>
 </head>
-<body><div class="overlay"><div class="box">
-<h1>Gojo Sensi - Limitless</h1>
-<div id="chat"></div>
-<form onsubmit="sendMsg(event)">
-<input id="inp" placeholder="Gojo ke jiggesh koro..." autocomplete="off"><button>Send</button>
-</form>
-<p style="text-align:center; font-size:12px;">WhatsApp Bot: {{wa_status}}</p>
-</div></div>
+<body class="bg-void text-white h-screen flex flex-col">
+<div class="infinity top-20 left-1/2 -translate-x-1/2"></div>
+<div class="infinity bottom-20 right-10 w-[800px] opacity-20" style="animation-delay:-3s"></div>
+
+<!-- HEADER -->
+<div class="glass m-3 p-4 rounded-2xl flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 eye-glow flex items-center justify-center text-xl">👁️</div>
+<div><h1 class="font-bold text-xl tracking-widest">DOMAIN CHAT</h1><p class="text-xs opacity-60">Jujutsu Kaisen • Gojo Satoru • Online • Limitless Active</p></div>
+</div>
+<div class="text-right"><p class="text-sm">Gojo Satoru</p><p class="text-xs text-green-400">● Online - Infinite Void</p></div>
+</div>
+
+<!-- CHAT -->
+<div class="flex-1 flex flex-col max-w-4xl w-full mx-auto p-3">
+<div id="chat" class="flex-1 glass rounded-2xl p-4 overflow-y-auto space-y-3">
+<div class="glass p-3 rounded-xl text-sm text-center">✨ Domain Expansion: Infinite Void is active — all messages slowed in infinite space for clarity. ✨</div>
+<div class="flex gap-2"><div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0"></div><div class="glass p-3 rounded-xl max-w-[80%]">Welcome to my domain, my student. I see every cursed energy flow with Six Eyes. Ask me anything... Huh? 💜</div></div>
+</div>
+<div class="mt-3 flex gap-2">
+<input id="msg" class="flex-1 glass rounded-full px-6 py-4 outline-none" placeholder="Ask Gojo about techniques, domains, Six Eyes, strategy...">
+<button onclick="send()" class="bg-gradient-to-r from-blue-600 to-purple-600 w-14 h-14 rounded-full text-xl">↗</button>
+</div>
+</div>
+
 <script>
-async function sendMsg(e){
- e.preventDefault();
- let txt=document.getElementById('inp').value;
- if(!txt) return;
- document.getElementById('chat').innerHTML+=`<div class='msg user'>${txt}</div>`;
- document.getElementById('inp').value='';
- let r=await fetch('/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({msg:txt})});
- let d=await r.json();
- document.getElementById('chat').innerHTML+=`<div class='msg assistant'>${d.reply}</div>`;
+async function send(){
+let input=document.getElementById('msg'); let text=input.value; if(!text) return;
+let chat=document.getElementById('chat');
+chat.innerHTML+=`<div class='flex justify-end'><div class='bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-xl max-w-[80%]'>${text}</div></div>`;
+input.value='';
+chat.scrollTop=chat.scrollHeight;
+let res=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});
+let data=await res.json();
+chat.innerHTML+=`<div class='flex gap-2'><div class='w-8 h-8 rounded-full bg-blue-600 flex-shrink-0'></div><div class='glass p-3 rounded-xl max-w-[80%]'>${data.reply}</div></div>`;
+chat.scrollTop=chat.scrollHeight;
 }
+document.getElementById('msg').addEventListener('keypress',e=>{if(e.key==='Enter')send()})
 </script>
-</body></html>
+</body>
+</html>
 """
 
 @app.route("/")
 def home():
-    wa = "Active ✅" if twilio_client else "Not set"
-    return render_template_string(HTML, bg=BG, wa_status=wa)
+    return render_template_string(HTML)
 
-@app.route("/chat", methods=['POST'])
+@app.route("/chat", methods=["POST"])
 def chat():
-    data = request.get_json()
-    reply = get_gojo_reply(data.get('msg',''))
-    return {"reply": reply}
+    user_msg = request.json.get("message")
+    completion = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":user_msg}]
+    )
+    return jsonify({"reply": completion.choices[0].message.content})
 
-@app.route("/whatsapp", methods=['POST'])
+@app.route("/whatsapp", methods=["POST"])
 def whatsapp():
-    incoming = request.values.get('Body', '')
-    reply = get_gojo_reply(incoming)
+    incoming = request.values.get("Body", "")
+    completion = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":incoming}]
+    )
     resp = MessagingResponse()
-    resp.message(reply)
+    resp.message(completion.choices[0].message.content)
     return str(resp)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
