@@ -110,13 +110,13 @@ def home(): return render_template_string(HTML)
 @app.route("/chat", methods=["POST"])
 def chat():
     user_msg = request.json.get("message","")
-    completion = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":user_msg}])
+    completion = client.chat.completions.create(model=model="llama-3.1-8b-instant", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":user_msg}])
     return jsonify({"reply": completion.choices[0].message.content})
 
 @app.route("/whatsapp", methods=["POST"])
 def whatsapp():
     incoming = request.values.get("Body", "")
-    completion = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":incoming}])
+    completion = client.chat.completions.create(model=model="llama-3.1-8b-instant", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":incoming}])
     resp = MessagingResponse(); resp.message(completion.choices[0].message.content); return str(resp)
 
 if __name__ == "__main__":
