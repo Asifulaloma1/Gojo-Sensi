@@ -112,13 +112,21 @@ def chat():
     try:
         user_msg = request.json.get("message","")
         if not os.environ.get("GROQ_API_KEY"):
-            return jsonify({"reply": "❌ GROQ_API_KEY missing! Render > Environment e add koro"})
-        completion = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":user_msg}])
+            return jsonify({"reply": "❌ GROQ_API_KEY missing!"})
+        completion = client.chat.completions.create(model="openai/gpt-oss-20b", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":user_msg}])
         return jsonify({"reply": completion.choices[0].message.content})
     except Exception as e:
         print(f"ERROR: {e}")
         return jsonify({"reply": f"⚠️ Error: {str(e)[:250]}"})
 
+@app.route("/whatsapp", methods=["POST"])
+def whatsapp():
+    try:
+        incoming = request.values.get("Body", "")
+        completion = client.chat.completions.create(model="openai/gpt-oss-20b", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":incoming}])
+        resp = MessagingResponse(); resp.message(completion.choices[0].message.content); return str(resp)
+    except Exception as e:
+        resp = MessagingResponse(); resp.message(f"Error: {e}"); return str(resp)
 @app.route("/whatsapp", methods=["POST"])
 def whatsapp():
     try:
