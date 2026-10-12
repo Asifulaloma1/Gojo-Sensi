@@ -109,15 +109,23 @@ def home(): return render_template_string(HTML)
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    user_msg = request.json.get("message","")
-    completion = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":user_msg}])
-    return jsonify({"reply": completion.choices[0].message.content})
+    try:
+        user_msg = request.json.get("message","")
+        if not os.environ.get("GROQ_API_KEY"):
+            return jsonify({"reply": "❌ GROQ_API_KEY missing! Render > Environment e add koro"})
+        completion = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":user_msg}])
+        return jsonify({"reply": completion.choices[0].message.content})
+    except Exception as e:
+        print(f"ERROR: {e}")
+        return jsonify({"reply": f"⚠️ Error: {str(e)[:250]}"})
 
 @app.route("/whatsapp", methods=["POST"])
 def whatsapp():
-    incoming = request.values.get("Body", "")
-    completion = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":incoming}])
-    resp = MessagingResponse(); resp.message(completion.choices[0].message.content); return str(resp)
-
+    try:
+        incoming = request.values.get("Body", "")
+        completion = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role":"system","content":SYSTEM_PROMPT},{"role":"user","content":incoming}])
+        resp = MessagingResponse(); resp.message(completion.choices[0].message.content); return str(resp)
+    except Exception as e:
+        resp = MessagingResponse(); resp.message(f"Error: {e}"); return str(resp)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
